@@ -11,9 +11,10 @@ import SpriteKit
 import GameplayKit
 import AVFoundation
 
-class MainScene: SKScene, SKPhysicsContactDelegate {
+class MainScene: SKScene, SKPhysicsContactDelegate, SKSceneDelegate {
     
     var player: PlayerNode!
+    let obstacleAtlas = SKTextureAtlas(named: "Obstacles")
 
     override func didMoveToView(view: SKView) {
         super.didMoveToView(view)
@@ -54,6 +55,10 @@ class MainScene: SKScene, SKPhysicsContactDelegate {
         light.falloff = 0.5
         
         player.addChild(light)
+        
+        obstacleAtlas.preloadWithCompletionHandler { 
+            // Do something once texture atlas has loaded
+        }
     }
     
     func spawnInObstacle(timer: NSTimer) {
@@ -63,9 +68,12 @@ class MainScene: SKScene, SKPhysicsContactDelegate {
         }
         
         let spriteGenerator = GKShuffledDistribution(lowestValue: 1, highestValue: 2)
-        let obstacle = SKSpriteNode(imageNamed: "Obstacle \(spriteGenerator.nextInt())")
+        let texture = obstacleAtlas.textureNamed("Obstacle \(spriteGenerator.nextInt())")
+        let obstacle = SKSpriteNode(texture: texture)
         obstacle.xScale = 0.3
         obstacle.yScale = 0.3
+        
+        print(obstacle.size)
         
         let physicsBody = SKPhysicsBody(circleOfRadius: 15)
         physicsBody.contactTestBitMask = 0x00000001
@@ -104,7 +112,7 @@ class MainScene: SKScene, SKPhysicsContactDelegate {
                 
                 player.removeAllActions()
                 player.hidden = true
-                player.removeFromParent()
+                player.physicsBody?.categoryBitMask = 0
                 camera?.removeAllActions()
                 
                 explosion.position = player.position
@@ -112,6 +120,8 @@ class MainScene: SKScene, SKPhysicsContactDelegate {
                 
                 addChild(smoke)
                 addChild(explosion)
+                
+                saveScene()
             }
         }
     }
@@ -145,5 +155,24 @@ class MainScene: SKScene, SKPhysicsContactDelegate {
         } catch {
             
         }
+    }
+    
+    override func encodeWithCoder(aCoder: NSCoder) {
+        super.encodeWithCoder(aCoder)
+        
+        let carHasCrashed = player.hidden
+        aCoder.encodeBool(carHasCrashed, forKey: "carCrashed")
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        super.init(coder: aDecoder)
+        
+        let carHasCrashed = aDecoder.decodeBoolForKey("carCrashed")
+        // Do something with carHasCrashed value
+    }
+    
+    func saveScene() {
+        let sceneData = NSKeyedArchiver.archivedDataWithRootObject(self)
+        NSUserDefaults.standardUserDefaults().setObject(sceneData, forKey: "currentScene")
     }
 }

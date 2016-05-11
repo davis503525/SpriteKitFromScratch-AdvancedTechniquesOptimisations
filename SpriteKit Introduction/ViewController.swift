@@ -21,13 +21,21 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         
         let skView = SKView(frame: view.frame)
-        let scene = MainScene(fileNamed: "MainScene")!
+        
+        var scene: MainScene?
+        
+        if let savedSceneData = NSUserDefaults.standardUserDefaults().objectForKey("currentScene") as? NSData, let savedScene = NSKeyedUnarchiver.unarchiveObjectWithData(savedSceneData) as? MainScene {
+            scene = savedScene
+        } else if let url = NSBundle.mainBundle().URLForResource("MainScene", withExtension: "sks"), let newSceneData = NSData(contentsOfURL: url), let newScene = NSKeyedUnarchiver.unarchiveObjectWithData(newSceneData) as? MainScene {
+            scene = newScene
+        }
+        
         skView.presentScene(scene)
         view.insertSubview(skView, atIndex: 0)
         
-        let left = LeftLane(player: scene.player)
-        let middle = MiddleLane(player: scene.player)
-        let right = RightLane(player: scene.player)
+        let left = LeftLane(player: scene!.player)
+        let middle = MiddleLane(player: scene!.player)
+        let right = RightLane(player: scene!.player)
         
         stateMachine = LaneStateMachine(states: [left, middle, right])
         stateMachine?.enterState(MiddleLane)
